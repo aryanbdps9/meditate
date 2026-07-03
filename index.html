@@ -19,7 +19,7 @@
                 <label for="duration">Duration (minutes)</label>
                 <div class="picker-row">
                     <button class="picker-btn" data-target="duration" data-delta="-1">−</button>
-                    <input type="number" id="duration" min="1" max="120" value="10">
+                    <input type="number" id="duration">
                     <button class="picker-btn" data-target="duration" data-delta="1">+</button>
                 </div>
             </div>
@@ -28,7 +28,7 @@
                 <label for="bell-interval">Bell every (minutes)</label>
                 <div class="picker-row">
                     <button class="picker-btn" data-target="bell-interval" data-delta="-1">−</button>
-                    <input type="number" id="bell-interval" min="0" max="60" value="2">
+                    <input type="number" id="bell-interval">
                     <button class="picker-btn" data-target="bell-interval" data-delta="1">+</button>
                 </div>
                 <span class="hint">0 = no bell</span>
@@ -38,11 +38,12 @@
         </div>
 
         <div id="session-view" hidden>
-            <div id="countdown">10:00</div>
+            <div id="countdown"></div>
             <button id="stop-btn" class="primary-btn stop-btn">Stop</button>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/tone@14/build/Tone.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

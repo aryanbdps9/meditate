@@ -1,6 +1,24 @@
 (function () {
     'use strict';
 
+    // --- Config (all durations in seconds) ---
+    const CONFIG = {
+        normal: {
+            defaultDurationSeconds: 1200,      // 20 minutes
+            defaultBellIntervalSeconds: 120,   // 2 minutes
+            minDurationSeconds: 60,            // 1 minute
+            minBellIntervalSeconds: 0,
+            stepSeconds: 60,                   // picker changes by 1 minute
+        },
+        test: {
+            defaultDurationSeconds: 6,
+            defaultBellIntervalSeconds: 3,
+            minDurationSeconds: 1,
+            minBellIntervalSeconds: 0,
+            stepSeconds: 1,                    // picker changes by 1 second
+        },
+    };
+
     // --- DOM refs ---
     const setupView = document.getElementById('setup-view');
     const sessionView = document.getElementById('session-view');
@@ -14,40 +32,81 @@
     const bellLabel = document.querySelector('label[for="bell-interval"]');
 
     // --- State ---
+    let normalDurationSeconds = CONFIG.normal.defaultDurationSeconds;
+    let normalBellIntervalSeconds = CONFIG.normal.defaultBellIntervalSeconds;
+    let testDurationSeconds = CONFIG.test.defaultDurationSeconds;
+    let testBellIntervalSeconds = CONFIG.test.defaultBellIntervalSeconds;
+
     let timerInterval = null;
     let remainingSeconds = 0;
     let bellIntervalSeconds = 0;
     let nextBellAt = 0; // remaining seconds at which next bell rings
-    let audioCtx = null;
 
-    // --- Audio ---
-    function getAudioContext() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // --- Mode helpers ---
+    function isTestMode() {
+        return testModeCheckbox.checked;
+    }
+
+    function activeConfig() {
+        return isTestMode() ? CONFIG.test : CONFIG.normal;
+    }
+
+    function syncInputsFromState() {
+        const cfg = activeConfig();
+        const durSec = isTestMode() ? testDurationSeconds : normalDurationSeconds;
+        const bellSec = isTestMode() ? testBellIntervalSeconds : normalBellIntervalSeconds;
+        durationInput.value = durSec / cfg.stepSeconds;
+        bellIntervalInput.value = bellSec / cfg.stepSeconds;
+    }
+
+    function syncStateFromInputs() {
+        const cfg = activeConfig();
+        const durSec = parseInt(durationInput.value, 10) * cfg.stepSeconds;
+        const bellSec = parseInt(bellIntervalInput.value, 10) * cfg.stepSeconds;
+        if (isTestMode()) {
+            testDurationSeconds = durSec;
+            testBellIntervalSeconds = bellSec;
+        } else {
+            normalDurationSeconds = durSec;
+            normalBellIntervalSeconds = bellSec;
         }
-        return audioCtx;
+    }
+
+    // --- Audio: Singing bowl via Tone.js ---
+    // Singing bowls have inharmonic partials with long, staggered decays.
+    const PARTIALS = [
+        { ratio: 1.0,   gain: 0.6,  decay: 5.0 },
+        { ratio: 2.71,  gain: 0.3,  decay: 3.5 },
+        { ratio: 5.04,  gain: 0.15, decay: 2.5 },
+        { ratio: 7.87,  gain: 0.08, decay: 1.8 },
+        { ratio: 11.03, gain: 0.04, decay: 1.2 },
+    ];
+    const BASE_FREQ = 220; // A3 — warm bowl fundamental
+
+    let bellSynths = null;
+
+    function ensureBellSynths() {
+        if (bellSynths) return;
+        bellSynths = PARTIALS.map(function (p) {
+            return new Tone.Synth({
+                oscillator: { type: 'sine' },
+                envelope: {
+                    attack: 0.005,
+                    decay: p.decay,
+                    sustain: 0,
+                    release: 0.3,
+                },
+            }).toDestination();
+        });
     }
 
     function playBell() {
-        const ctx = getAudioContext();
-        const now = ctx.currentTime;
-
-        // A soft sine-wave bell with gentle decay
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(528, now);
-        osc.frequency.exponentialRampToValueAtTime(396, now + 1.5);
-
-        gain.gain.setValueAtTime(0.4, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 2);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc.start(now);
-        osc.stop(now + 2);
+        ensureBellSynths();
+        const now = Tone.now();
+        PARTIALS.forEach(function (p, i) {
+            bellSynths[i].volume.value = Tone.gainToDb(p.gain);
+            bellSynths[i].triggerAttackRelease(BASE_FREQ * p.ratio, p.decay, now);
+        });
     }
 
     // --- Timer logic ---
@@ -73,20 +132,18 @@
     }
 
     function startSession() {
-        const durationVal = parseInt(durationInput.value, 10) || 10;
-        const bellVal = parseInt(bellIntervalInput.value, 10) || 0;
-        const multiplier = testModeCheckbox.checked ? 1 : 60;
+        syncStateFromInputs();
 
-        remainingSeconds = durationVal * multiplier;
-        bellIntervalSeconds = bellVal * multiplier;
+        remainingSeconds = isTestMode() ? testDurationSeconds : normalDurationSeconds;
+        bellIntervalSeconds = isTestMode() ? testBellIntervalSeconds : normalBellIntervalSeconds;
         nextBellAt = bellIntervalSeconds > 0 ? remainingSeconds - bellIntervalSeconds : -1;
 
         countdownEl.textContent = formatTime(remainingSeconds);
         setupView.hidden = true;
         sessionView.hidden = false;
 
-        // Ensure AudioContext is resumed (browsers require user gesture)
-        if (audioCtx) audioCtx.resume();
+        // Ensure Tone.js audio context is started (browsers require user gesture)
+        Tone.start();
 
         timerInterval = setInterval(tick, 1000);
     }
@@ -107,21 +164,42 @@
     document.querySelectorAll('.picker-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
             const target = document.getElementById(btn.dataset.target);
+            const cfg = activeConfig();
             const delta = parseInt(btn.dataset.delta, 10);
-            const min = parseInt(target.min, 10);
-            const max = parseInt(target.max, 10);
+            const isDuration = target.id === 'duration';
+            const minSeconds = isDuration ? cfg.minDurationSeconds : cfg.minBellIntervalSeconds;
+            const minDisplay = minSeconds / cfg.stepSeconds;
+
             let val = parseInt(target.value, 10) + delta;
-            val = Math.max(min, Math.min(max, val));
+            val = Math.max(minDisplay, val);
             target.value = val;
         });
     });
 
     // --- Test mode toggle ---
     testModeCheckbox.addEventListener('change', function () {
-        const unit = testModeCheckbox.checked ? 'seconds' : 'minutes';
+        // Save inputs to the mode we're LEAVING (opposite of current state)
+        var leavingTest = !isTestMode();
+        var cfg = leavingTest ? CONFIG.test : CONFIG.normal;
+        var durSec = parseInt(durationInput.value, 10) * cfg.stepSeconds;
+        var bellSec = parseInt(bellIntervalInput.value, 10) * cfg.stepSeconds;
+        if (leavingTest) {
+            testDurationSeconds = durSec;
+            testBellIntervalSeconds = bellSec;
+        } else {
+            normalDurationSeconds = durSec;
+            normalBellIntervalSeconds = bellSec;
+        }
+
+        // Update labels and load new mode's values
+        var unit = isTestMode() ? 'seconds' : 'minutes';
         durationLabel.textContent = 'Duration (' + unit + ')';
         bellLabel.textContent = 'Bell every (' + unit + ')';
+        syncInputsFromState();
     });
+
+    // --- Init ---
+    syncInputsFromState();
 
     // --- Event listeners ---
     startBtn.addEventListener('click', startSession);
