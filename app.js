@@ -17,6 +17,11 @@
             minBellIntervalSeconds: 0,
             stepSeconds: 1,                    // picker changes by 1 second
         },
+        endBell: {
+            rings: 2,
+            pitchMultiplier: 1.25,
+            gapSeconds: 0.2,
+        },
     };
 
     // --- DOM refs ---
@@ -100,13 +105,21 @@
         });
     }
 
-    function playBell() {
+    function playBell(pitchMultiplier, timeOffset) {
         ensureBellSynths();
-        const now = Tone.now();
+        var mult = pitchMultiplier || 1;
+        var startTime = Tone.now() + (timeOffset || 0);
         PARTIALS.forEach(function (p, i) {
             bellSynths[i].volume.value = Tone.gainToDb(p.gain);
-            bellSynths[i].triggerAttackRelease(BASE_FREQ * p.ratio, p.decay, now);
+            bellSynths[i].triggerAttackRelease(BASE_FREQ * p.ratio * mult, p.decay, startTime);
         });
+    }
+
+    function playEndBell() {
+        var cfg = CONFIG.endBell;
+        for (var i = 0; i < cfg.rings; i++) {
+            playBell(cfg.pitchMultiplier, i * cfg.gapSeconds);
+        }
     }
 
     // --- Timer logic ---
@@ -153,7 +166,7 @@
         timerInterval = null;
 
         if (completed) {
-            playBell();
+            playEndBell();
         }
 
         setupView.hidden = false;

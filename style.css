@@ -16,8 +16,8 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #1a1a2e;
-    color: #e0e0e0;
+    background: #121010;
+    color: #e0d8d0;
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -35,7 +35,7 @@ h1 {
     font-size: 2rem;
     font-weight: 300;
     margin-bottom: 2.5rem;
-    color: #a8d8ea;
+    color: #d4a574;
     letter-spacing: 0.1em;
 }
 
@@ -63,10 +63,10 @@ h1 {
     width: 4rem;
     text-align: center;
     font-size: 1.5rem;
-    background: #16213e;
-    border: 1px solid #333;
+    background: #1c1614;
+    border: 1px solid #3a3230;
     border-radius: 8px;
-    color: #e0e0e0;
+    color: #e0d8d0;
     padding: 0.4rem;
     -moz-appearance: textfield;
 }
@@ -81,16 +81,16 @@ h1 {
     width: 2.5rem;
     height: 2.5rem;
     border-radius: 50%;
-    border: 1px solid #444;
-    background: #16213e;
-    color: #a8d8ea;
+    border: 1px solid #3a3230;
+    background: #1c1614;
+    color: #d4a574;
     font-size: 1.25rem;
     cursor: pointer;
     transition: background 0.2s;
 }
 
 .picker-btn:hover {
-    background: #1a3a5c;
+    background: #2a2220;
 }
 
 .hint {
@@ -106,15 +106,15 @@ h1 {
     font-size: 1.1rem;
     border: none;
     border-radius: 30px;
-    background: #a8d8ea;
-    color: #1a1a2e;
+    background: #d4a574;
+    color: #121010;
     font-weight: 600;
     cursor: pointer;
     transition: transform 0.15s, background 0.2s;
 }
 
 .primary-btn:hover {
-    background: #88c8dc;
+    background: #c4956a;
     transform: scale(1.03);
 }
 
@@ -131,7 +131,7 @@ h1 {
     font-size: 4rem;
     font-weight: 200;
     font-variant-numeric: tabular-nums;
-    color: #a8d8ea;
+    color: #d4a574;
     margin-bottom: 1rem;
 }
 
