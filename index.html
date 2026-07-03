@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meditate</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <label class="test-toggle">
+        <input type="checkbox" id="test-mode"> Test mode (seconds)
+    </label>
+
+    <div class="container">
+        <h1>Meditate</h1>
+
+        <div id="setup-view">
+            <div class="picker-group">
+                <label for="duration">Duration (minutes)</label>
+                <div class="picker-row">
+                    <button class="picker-btn" data-target="duration" data-delta="-1">−</button>
+                    <input type="number" id="duration" min="1" max="120" value="10">
+                    <button class="picker-btn" data-target="duration" data-delta="1">+</button>
+                </div>
+            </div>
+
+            <div class="picker-group">
+                <label for="bell-interval">Bell every (minutes)</label>
+                <div class="picker-row">
+                    <button class="picker-btn" data-target="bell-interval" data-delta="-1">−</button>
+                    <input type="number" id="bell-interval" min="0" max="60" value="2">
+                    <button class="picker-btn" data-target="bell-interval" data-delta="1">+</button>
+                </div>
+                <span class="hint">0 = no bell</span>
+            </div>
+
+            <button id="start-btn" class="primary-btn">Start</button>
+        </div>
+
+        <div id="session-view" hidden>
+            <div id="countdown">10:00</div>
+            <button id="stop-btn" class="primary-btn stop-btn">Stop</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
